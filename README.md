@@ -2,15 +2,15 @@
 ## 32-Bit, 5-Stage RISC Processor
 ### Created by: Varun Kosgi
 
-Processor Instruction Set:
+Processor Instruction Set:\newline
 
-add $rd, $rs, $rt
-addi $rd, $rs, N
-sub $rd, $rs, $rt
-and $rd, $rs, $rt
-or $rd, $rd, $rt
-sll $rd, $rs, shamt
-sra $rd, $rs, shamt
+add $rd, $rs, $rt\newline
+addi $rd, $rs, N\newline
+sub $rd, $rs, $rt\newline
+and $rd, $rs, $rt\newline
+or $rd, $rd, $rt\newline
+sll $rd, $rs, shamt\newline
+sra $rd, $rs, shamt\newline
 sw $rd, N($rs)
 lw $rd, N($rs)
 j T
