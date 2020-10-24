@@ -11,9 +11,9 @@
  * file, Wrapper.v, acts as a small wrapper around your processor for this purpose. Refer to Wrapper.v
  * for more details.
  *
- * As a result, this module will NOT contain the RegFile nor the memory modules. Study the inputs 
+ * As a result, this module will NOT contain the RegFile nor the memory modules. Study the inputs
  * very carefully - the RegFile-related I/Os are merely signals to be sent to the RegFile instantiated
- * in your Wrapper module. This is the same for your memory elements. 
+ * in your Wrapper module. This is the same for your memory elements.
  *
  *
  */
@@ -41,12 +41,12 @@ module processor(
     data_writeReg,                  // O: Data to write to for RegFile
     data_readRegA,                  // I: Data from port A of RegFile
     data_readRegB                   // I: Data from port B of RegFile
-	 
+
 	);
 
 	// Control signals
 	input clock, reset;
-	
+
 	// Imem
     output [31:0] address_imem;
 	input [31:0] q_imem;
@@ -61,6 +61,12 @@ module processor(
 	output [4:0] ctrl_writeReg, ctrl_readRegA, ctrl_readRegB;
 	output [31:0] data_writeReg;
 	input [31:0] data_readRegA, data_readRegB;
+
+  wire[31:0] branched_pc, normWrite;
+  wire [31:0] op2;
+  wire alu2, addi2, sw2, lw2, jump2, bne2, jal2, jr2, blt2, bex2, setx2;
+  wire i_type2, r_type2, ji_type2, jii_type2;
+  wire iNe, iLt, ovf, sw3;
 
     // Decoder for OpCodes
     wire [31:0] op;
@@ -100,13 +106,13 @@ module processor(
     and isLessthan(blt_true, blt2, iLt);
     wire bne_true;
     and isNotEqual(bne_true, bne2, iNe);
-    
+
     //Assert True if PC to be jumped
     wire jumped_pc;
     wire bex_true;
     assign bex_true = ~(dx_out[95:64] == 32'd0); //rstatus != 0
     or pc_j(jumped_pc, jump2, jal2, (bex2&&bex_true));
-   
+
     //Muxes between normal PC, branched PCs, or jumped PCs
     wire[31:0] b1, b2, j1, j2;
     wire [31:0] target;
@@ -152,18 +158,18 @@ module processor(
     assign rs = fd_out[21:17];
     // Only if R type instruction
     mux_2_5bit rvi(rt, r_type, 5'd0, fd_out[16:12]);
-    
+
     //STALLING LOGIC
     wire[4:0] rs1;
     wire[4:0] rs2;
     assign rs1 = fd_out[21:17];
     mux_2_5bit rv2(rs2, r_type, 5'd0, fd_out[16:12]);
-    wire hazard;
+
     wire[4:0] LOAD = 5'b01000;
     wire[4:0] STORE = 5'b00111;
     assign stall = (dx_out[31:27] == LOAD) && (((rs1==dx_out[26:22]) || (rs2 == dx_out[26:22])) && (fd_in[31:27] != STORE)) && ~(rs1==5'd0) && ~(rs2==5'd0) && ~(dx_out[26:22]==5'd0);
     or haz_detect(hazard, stall);
-    
+
     //BYPASS LOGIC
     wire [31:0] ALUinA, ALUinB, dmem_in;
     wire [1:0] a_select;
@@ -173,8 +179,8 @@ module processor(
     assign bp2 = (dx_out[21:17] == mw_out[26:22]) && ~(dx_out[21:17]==5'd0) && ~(mw_out[26:22]==5'd0) && ~(mw_out[31:27] == STORE);
     assign a_select[0] = bp2 ? 1'b1 : 1'b0;
     assign a_select[1] = (~bp1 && ~bp2) ? 1'b1 : 1'b0;
-    mux_4 aluA(ALUinA, a_select, xm_out[95:64], normWrite, dx_out[95:64]);
-    
+    mux_4 aluA(ALUinA, a_select, xm_out[95:64], normWrite, dx_out[95:64], 32'd0);
+
     wire [1:0] b_select;
     wire bp3;
     assign bp3 = (dx_out[16:12] == xm_out[26:22]) && ~(dx_out[16:12]==5'd0) && ~(xm_out[26:22]==5'd0);
@@ -182,13 +188,13 @@ module processor(
     assign bp4 = (dx_out[16:12] == mw_out[26:22]) && ~(dx_out[16:12]==5'd0) && ~(mw_out[26:22]==5'd0);
     assign b_select[0] = bp4 ? 1'b1 : 1'b0;
     assign b_select[1] = (~bp3 && ~bp4) ? 1'b1 : 1'b0;
-    mux_4 aluB(ALUinB, b_select, xm_out[95:64], normWrite, dx_out[63:32]);
-    
+    mux_4 aluB(ALUinB, b_select, xm_out[95:64], normWrite, dx_out[63:32], 32'd0);
+
     wire bp5;
     assign bp5 = (mw_out[26:22]== xm_out[26:22]) && ~(mw_out[26:22]==5'd0) && ~(xm_out[26:22]==5'd0);
     wire[31:0] data_intmd;
     mux_2_32bit dm_mux(data_intmd, bp5, xm_out[63:32], normWrite);
-    
+
     // Lookup RegFile
     wire isBranch, isJR, isBex;
     wire[4:0] ctrl_A_Intmd, ctrl_A_Intmd2;
@@ -207,13 +213,13 @@ module processor(
     assign dx_in[95:64] = data_readRegA;
     assign dx_in[63:32] = data_readRegB;
 
-    // Flushes dx.IR if branch or Hazard    
-    wire branch;
+    // Flushes dx.IR if branch or Hazard
+
     or branch_occurence(branch, blt_true, bne_true);
     mux_2_32bit haz_nop_mux(dx_in[31:0], (hazard || branch), fd_out[31:0], nop);
-    
+
     register_128 decode_execute(dx_out, dx_in, clock, enable, reset);
-    
+
     // Choose between normal ALUOP and immediate (automatic add)
     mux_2_5bit aluopmux(aluop, i_type2, dx_out[6:2], 5'd0);
     assign shamt = dx_out[11:7];
@@ -227,15 +233,11 @@ module processor(
     //PC branch (+N)
     wire[31:0] pc_branch_amt;
     assign pc_branch_amt = immed_extended;
-    wire[31:0] branched_pc;
     wire Cout;
     csa_32_bit jumper(branched_pc, Cout, dx_out[127:96], pc_branch_amt, 1'b0);
 
     // Decoded OpCodes
-    wire [31:0] op2;
     decoder_32 opCode2(op2, dx_out[31:27]);
-    wire alu2, addi2, sw2, lw2, jump2, bne2, jal2, jr2, blt2, bex2, setx2;
-    wire i_type2, r_type2, ji_type2, jii_type2;
     assign alu2 = op2[0];
     assign addi2 = op2[5];
     assign sw2 = op2[7];
@@ -255,7 +257,6 @@ module processor(
 
     // ALU
     wire [31:0] aluRes;
-    wire iNe, iLt, ovf;
     wire[31:0] operand_A;
     wire[31:0] operand_B;
     //out, select, data_operandB, immediate value(sign extended)
@@ -272,7 +273,7 @@ module processor(
     // Decoded OpCodes
     wire [31:0] op3;
     decoder_32 opCode3(op3, xm_out[31:27]);
-    wire alu3, addi3, sw3, lw3, jump3, bne3, jal3, jr3, blt3, bex3, setx3;
+    wire alu3, addi3, lw3, jump3, bne3, jal3, jr3, blt3, bex3, setx3;
     assign alu3 = op3[0];
     assign addi3 = op3[5];
     assign sw3 = op3[7];
@@ -284,7 +285,7 @@ module processor(
     assign blt3 = op3[6];
     assign bex3 = op3[22];
     assign setx3 = op3[21];
-    
+
     // DataMem
     assign address_dmem = xm_out[95:64];
     assign rd_xm = xm_out[26:22];
@@ -336,7 +337,6 @@ module processor(
     or rwe(ctrl_writeEnable, r_type4, addi4, lw4, jal4);
 
     // Mux to choose between ALURes and DataMem (load word)
-    wire[31:0] normWrite;
     mux_2_32bit regWriteDataMux(normWrite, lw4, mw_out[95:64], q_dmem);
 
     // Muxes to choose between normal data, JAL data (PC+1), and setx data
@@ -345,5 +345,5 @@ module processor(
     wire[31:0] setx_target;
     assign setx_target[26:0] = mw_out[26:0];
     mux_2_32bit regsetxdatamux(data_writeReg, setx4, data_WRintermed, setx_target);
-    
+
 endmodule

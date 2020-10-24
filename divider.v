@@ -64,7 +64,6 @@ module divider(data_result, data_operandA, data_operandB, data_exception, data_r
 	not nrs(notRemSign, remSign);
 
 	wire shiftedremSign = intermedRemQuo_shifted[63];
-	wire shiftedRemSign_not;
 	not ns(shiftedRemSign_not, shiftedremSign);
 
 	wire ovf;
@@ -93,7 +92,7 @@ module divider(data_result, data_operandA, data_operandB, data_exception, data_r
 	mux_2_32bit excep(res, data_exception, currentRemQuo[31:0], 32'd0);
 	wire[31:0] notRes;
 	negator not_res(notRes, res);
-	
+
 	wire quot_neg;
 	xor posq(quot_neg, dividend_sign, divisor_sign);
 
