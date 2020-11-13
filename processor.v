@@ -116,7 +116,7 @@ module processor(
     //Muxes between normal PC, branched PCs, or jumped PCs
     wire[31:0] b1, b2, j1, j2;
     wire [31:0] target;
-    assign target[26:0] = dx_out[26:0];
+    assign target[31:0] = dx_out[26:0];
     mux_2_32bit branched_mux(b1, (blt_true || bne_true), pc_inc_normal, branched_pc);
     mux_2_32bit jumped_mux(j1, jumped_pc, b1, target);
     mux_2_32bit jr_mux(pc_inc, jii_type2, j1, dx_out[95:64]); //dataReadRegA with $rd as ctrl_ReadReg
