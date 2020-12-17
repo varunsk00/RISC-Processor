@@ -1,4 +1,3 @@
-# team-a-3130
 ## 32-Bit, 5-Stage RISC Processor
 ### Created by: Varun Kosgi
 
@@ -27,7 +26,7 @@
 
 ### Processor Features:
 * Stall and WX Bypass Logic for Data Hazard avoidance
-* Brnach Recovery implementation
+* Branch Recovery implementation
 
 ### Known Bugs:
 * Exceptions are not loaded into the status register in its current state (but the status register logic for bex and setx is still implemented)
